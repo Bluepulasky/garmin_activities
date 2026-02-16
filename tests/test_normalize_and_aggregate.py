@@ -26,6 +26,7 @@ class NormalizeAndAggregateTests(unittest.TestCase):
             "start_date_local": "2026-02-13 08:15:30+00:00",
             "sport_type": "Running",
             "type": "Workout",
+            "name": "Morning Session",
             "distance": "1609.344",
             "moving_time": 0,
             "duration": 95.0,
@@ -46,6 +47,7 @@ class NormalizeAndAggregateTests(unittest.TestCase):
         self.assertEqual(normalized["distance"], 1609.344)
         self.assertEqual(normalized["moving_time"], 95.0)
         self.assertEqual(normalized["elevation_gain"], 50.0)
+        self.assertEqual(normalized["name"], "Morning Session")
 
     def test_normalize_activity_returns_empty_when_missing_required_fields(self) -> None:
         self.assertEqual(normalize._normalize_activity({}, {}, "strava"), {})

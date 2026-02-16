@@ -102,6 +102,9 @@ jobs:
           STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
           STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
           DASHBOARD_STRAVA_PROFILE_URL: ${{ vars.DASHBOARD_STRAVA_PROFILE_URL }}
+          DASHBOARD_STRAVA_ACTIVITY_LINKS: ${{ vars.DASHBOARD_STRAVA_ACTIVITY_LINKS }}
+          DASHBOARD_GARMIN_PROFILE_URL: ${{ vars.DASHBOARD_GARMIN_PROFILE_URL }}
+          DASHBOARD_GARMIN_ACTIVITY_LINKS: ${{ vars.DASHBOARD_GARMIN_ACTIVITY_LINKS }}
           GARMIN_TOKENS_B64: ${{ secrets.GARMIN_TOKENS_B64 }}
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
@@ -123,6 +126,10 @@ jobs:
             if [[ -n "${DASHBOARD_STRAVA_PROFILE_URL}" ]]; then
               echo "  profile_url: \"${DASHBOARD_STRAVA_PROFILE_URL}\"" >> config.local.yaml
             fi
+            normalized_links_value="$(echo "${DASHBOARD_STRAVA_ACTIVITY_LINKS}" | tr '[:upper:]' '[:lower:]' | xargs)"
+            if [[ "${normalized_links_value}" == "1" || "${normalized_links_value}" == "true" || "${normalized_links_value}" == "yes" || "${normalized_links_value}" == "y" || "${normalized_links_value}" == "on" ]]; then
+              echo "  include_activity_urls: true" >> config.local.yaml
+            fi
           else
             cat <<CONFIG >> config.local.yaml
           garmin:
@@ -130,6 +137,13 @@ jobs:
             email: "${GARMIN_EMAIL}"
             password: "${GARMIN_PASSWORD}"
           CONFIG
+            if [[ -n "${DASHBOARD_GARMIN_PROFILE_URL}" ]]; then
+              echo "  profile_url: \"${DASHBOARD_GARMIN_PROFILE_URL}\"" >> config.local.yaml
+            fi
+            normalized_links_value="$(echo "${DASHBOARD_GARMIN_ACTIVITY_LINKS}" | tr '[:upper:]' '[:lower:]' | xargs)"
+            if [[ "${normalized_links_value}" == "1" || "${normalized_links_value}" == "true" || "${normalized_links_value}" == "yes" || "${normalized_links_value}" == "y" || "${normalized_links_value}" == "on" ]]; then
+              echo "  include_activity_urls: true" >> config.local.yaml
+            fi
           fi
 
           if [[ -n "${DASHBOARD_DISTANCE_UNIT}" || -n "${DASHBOARD_ELEVATION_UNIT}" ]]; then

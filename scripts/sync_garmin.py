@@ -135,6 +135,15 @@ def _normalize_activity(activity: Dict[str, Any]) -> Dict[str, Any]:
         activity.get("total_elevation_gain"),
     )
     distance = _coalesce(activity.get("distance"), activity.get("totalDistance"), 0.0)
+    activity_name = str(
+        _coalesce(
+            activity.get("activityName"),
+            activity.get("activity_name"),
+            activity.get("name"),
+            _get_nested(activity, ["summaryDTO", "activityName"]),
+        )
+        or ""
+    ).strip()
 
     normalized = {
         "id": str(activity_id),
@@ -154,6 +163,8 @@ def _normalize_activity(activity: Dict[str, Any]) -> Dict[str, Any]:
         "total_elevation_gain": _safe_float(elevation_gain, 0.0),
         "provider": "garmin",
     }
+    if activity_name:
+        normalized["name"] = activity_name
     return normalized
 
 

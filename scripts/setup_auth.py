@@ -34,9 +34,11 @@ from datetime import datetime, timezone
 from typing import Iterator, Optional, Tuple
 
 from garmin_token_store import (
+    decode_token_store_b64,
     encode_token_store_dir_as_zip_b64,
     hydrate_token_store_from_legacy_file,
     token_store_ready,
+    write_token_store_bytes,
 )
 
 if sys.version_info < (3, 9):
@@ -77,6 +79,9 @@ REPO_SSH_RE = re.compile(
 )
 REPO_SLUG_RE = re.compile(r"^(?P<owner>[^/\s]+)/(?P<repo>[^/\s]+)$")
 STRAVA_HOST_RE = re.compile(r"(^|\.)strava\.com$", re.IGNORECASE)
+GARMIN_CONNECT_HOST_RE = re.compile(r"(^|\.)connect\.garmin\.com$", re.IGNORECASE)
+TRUTHY_BOOL_TEXT = {"1", "true", "yes", "y", "on"}
+FALSEY_BOOL_TEXT = {"0", "false", "no", "n", "off", ""}
 
 
 @dataclass
@@ -567,6 +572,38 @@ def _existing_dashboard_week_start(repo: str) -> Optional[str]:
         return None
 
 
+def _parse_bool_text(value: Optional[str], *, field_name: str) -> bool:
+    normalized = str(value or "").strip().lower()
+    if normalized in TRUTHY_BOOL_TEXT:
+        return True
+    if normalized in FALSEY_BOOL_TEXT:
+        return False
+    allowed_values = ", ".join(sorted(TRUTHY_BOOL_TEXT | FALSEY_BOOL_TEXT))
+    raise ValueError(f"Unsupported value for {field_name}: {value!r}. Expected one of: {allowed_values}.")
+
+
+def _existing_dashboard_activity_links(repo: str, source: str) -> Optional[bool]:
+    source_name = str(source or "").strip().upper()
+    if source_name not in {"STRAVA", "GARMIN"}:
+        return None
+    variable_name = f"DASHBOARD_{source_name}_ACTIVITY_LINKS"
+    value = _get_variable(variable_name, repo)
+    if value is None:
+        return None
+    try:
+        return _parse_bool_text(value, field_name=variable_name)
+    except ValueError:
+        return None
+
+
+def _existing_dashboard_strava_activity_links(repo: str) -> Optional[bool]:
+    return _existing_dashboard_activity_links(repo, "strava")
+
+
+def _existing_dashboard_garmin_activity_links(repo: str) -> Optional[bool]:
+    return _existing_dashboard_activity_links(repo, "garmin")
+
+
 def _prompt_full_backfill_choice(source: str) -> bool:
     print(
         "\nThis repository is already configured for "
@@ -878,7 +915,7 @@ def _resolve_source(
     return DEFAULT_SOURCE
 
 
-def _normalize_strava_profile_url(value: Optional[str]) -> str:
+def _normalize_provider_profile_url(value: Optional[str], source: str) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
@@ -886,13 +923,27 @@ def _normalize_strava_profile_url(value: Optional[str]) -> str:
         raw = f"https://{raw.lstrip('/')}"
     parsed = urllib.parse.urlparse(raw)
     host = str(parsed.hostname or "").lower()
-    if not host or not STRAVA_HOST_RE.search(host):
-        raise ValueError("Strava profile URL must use a strava.com hostname.")
-    path = str(parsed.path or "").strip()
-    if not path or path == "/":
-        raise ValueError("Strava profile URL must include a profile path (for example /athletes/<id>).")
+    normalized_source = str(source or "").strip().lower()
 
-    normalized_path = path.rstrip("/") or "/"
+    if normalized_source == "strava":
+        if not host or not STRAVA_HOST_RE.search(host):
+            raise ValueError("Strava profile URL must use a strava.com hostname.")
+        path_error = "Strava profile URL must include a profile path (for example /athletes/<id>)."
+        normalized_path = str(parsed.path or "").strip().rstrip("/") or "/"
+        if not normalized_path or normalized_path == "/":
+            raise ValueError(path_error)
+    elif normalized_source == "garmin":
+        if not host or not GARMIN_CONNECT_HOST_RE.search(host):
+            raise ValueError("Garmin profile URL must use a connect.garmin.com hostname.")
+        path_error = "Garmin profile URL must include a profile path (for example /modern/profile/<id>)."
+        path = str(parsed.path or "").strip()
+        match = re.match(r"^/(?:modern/)?profile/([^/]+)(?:/.*)?$", path, flags=re.IGNORECASE)
+        if not match:
+            raise ValueError(path_error)
+        normalized_path = f"/modern/profile/{match.group(1)}"
+    else:
+        raise ValueError(f"Unsupported source for profile URL normalization: {source!r}")
+
     normalized = urllib.parse.urlunparse(
         (
             parsed.scheme or "https",
@@ -904,6 +955,14 @@ def _normalize_strava_profile_url(value: Optional[str]) -> str:
         )
     )
     return normalized
+
+
+def _normalize_strava_profile_url(value: Optional[str]) -> str:
+    return _normalize_provider_profile_url(value, "strava")
+
+
+def _normalize_garmin_profile_url(value: Optional[str]) -> str:
+    return _normalize_provider_profile_url(value, "garmin")
 
 
 def _strava_profile_url_from_athlete(athlete: object) -> str:
@@ -952,16 +1011,299 @@ def _detect_strava_profile_url(tokens: dict) -> str:
     return _strava_profile_url_from_athlete(athlete)
 
 
+def _garmin_profile_url_from_profile(profile: object) -> str:
+    if not isinstance(profile, dict):
+        return ""
+
+    direct_candidate_fields = (
+        "displayName",
+        "display_name",
+        "profileId",
+        "profile_id",
+        "id",
+        "userProfilePk",
+        "userId",
+        "user_id",
+        "userName",
+        "user_name",
+    )
+    nested_candidate_roots = (
+        "profile",
+        "userData",
+    )
+
+    candidate_values: list[object] = []
+    for key in direct_candidate_fields:
+        candidate_values.append(profile.get(key))
+    for root in nested_candidate_roots:
+        nested = profile.get(root)
+        if isinstance(nested, dict):
+            for key in direct_candidate_fields:
+                candidate_values.append(nested.get(key))
+
+    for value in candidate_values:
+        if value in (None, ""):
+            continue
+        profile_id = str(value).strip()
+        if not profile_id:
+            continue
+        encoded_id = urllib.parse.quote(profile_id, safe="")
+        if encoded_id:
+            return f"https://connect.garmin.com/modern/profile/{encoded_id}"
+    return ""
+
+
+def _coerce_garmin_profile_payload(value: object) -> dict:
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return {}
+
+    payload: dict[str, object] = {}
+    field_aliases = (
+        ("displayName", "displayName"),
+        ("display_name", "displayName"),
+        ("profileId", "profileId"),
+        ("profile_id", "profileId"),
+        ("id", "id"),
+        ("userProfilePk", "userProfilePk"),
+        ("userId", "userId"),
+        ("user_id", "userId"),
+        ("userName", "userName"),
+        ("user_name", "userName"),
+        ("fullName", "fullName"),
+        ("full_name", "fullName"),
+    )
+    for source_attr, target_key in field_aliases:
+        attr_value = getattr(value, source_attr, None)
+        if attr_value in (None, ""):
+            continue
+        payload[target_key] = attr_value
+    return payload
+
+
+def _fetch_garmin_profile(
+    *,
+    token_store_b64: str,
+    email: str,
+    password: str,
+) -> dict:
+    try:
+        import garth
+    except ImportError:
+        return {}
+
+    token_value = str(token_store_b64 or "").strip()
+    email_value = str(email or "").strip()
+    password_value = str(password or "").strip()
+
+    with tempfile.TemporaryDirectory(prefix="garmin-profile-") as tmpdir:
+        token_store_dir = os.path.join(tmpdir, "token_store")
+        resumed = False
+        if token_value:
+            try:
+                token_bytes = decode_token_store_b64(token_value)
+                write_token_store_bytes(token_bytes, token_store_dir)
+                if token_store_ready(token_store_dir):
+                    garth.resume(token_store_dir)
+                    resumed = True
+            except Exception:
+                resumed = False
+
+        if not resumed:
+            if not email_value or not password_value:
+                return {}
+            try:
+                garth.login(email_value, password_value)
+            except Exception:
+                return {}
+
+        profile_candidates: list[dict] = []
+
+        def _add_profile_candidate(candidate: object) -> bool:
+            payload = _coerce_garmin_profile_payload(candidate)
+            if not payload:
+                return False
+            profile_candidates.append(payload)
+            return bool(_garmin_profile_url_from_profile(payload))
+
+        garth_client = getattr(garth, "client", None)
+        if garth_client is not None:
+            try:
+                if _add_profile_candidate(getattr(garth_client, "profile", None)):
+                    return profile_candidates[-1]
+            except Exception:
+                pass
+
+        user_profile_cls = getattr(garth, "UserProfile", None)
+        if user_profile_cls is not None and hasattr(user_profile_cls, "get"):
+            try:
+                if _add_profile_candidate(user_profile_cls.get()):
+                    return profile_candidates[-1]
+            except Exception:
+                pass
+
+        for path in (
+            "/userprofile-service/socialProfile",
+            "/userprofile-service/userprofile/profile",
+        ):
+            try:
+                if _add_profile_candidate(garth.connectapi(path)):
+                    return profile_candidates[-1]
+            except Exception:
+                continue
+
+        # Fallback to Garmin wrapper session helpers used by sync path.
+        try:
+            from garminconnect import Garmin
+        except Exception:
+            Garmin = None  # type: ignore[assignment]
+
+        if Garmin:
+            clients = []
+            for factory in (
+                (lambda: Garmin(email=email_value, password=password_value)),
+                (lambda: Garmin(email_value, password_value)),
+                (lambda: Garmin()),
+            ):
+                try:
+                    clients.append(factory())
+                except Exception:
+                    continue
+            for client in clients:
+                login_ok = False
+                for login_attempt in (
+                    (lambda: client.login(tokenstore=token_store_dir)),
+                    (lambda: client.login(token_store=token_store_dir)),
+                    (lambda: client.login(token_store_dir)),
+                    (lambda: client.login(email_value, password_value)),
+                    (lambda: client.login(email=email_value, password=password_value)),
+                    (lambda: client.login()),
+                ):
+                    try:
+                        login_attempt()
+                        login_ok = True
+                        break
+                    except TypeError:
+                        continue
+                    except Exception:
+                        continue
+                if not login_ok:
+                    continue
+
+                display_name = getattr(client, "display_name", None)
+                if _add_profile_candidate({"displayName": display_name}):
+                    return profile_candidates[-1]
+                garth_client_obj = getattr(client, "garth", None)
+                if garth_client_obj is not None:
+                    try:
+                        if _add_profile_candidate(getattr(garth_client_obj, "profile", None)):
+                            return profile_candidates[-1]
+                    except Exception:
+                        pass
+                for path in (
+                    "/userprofile-service/socialProfile",
+                    "/userprofile-service/userprofile/profile",
+                ):
+                    connectapi = getattr(client, "connectapi", None)
+                    if not callable(connectapi):
+                        continue
+                    try:
+                        if _add_profile_candidate(connectapi(path)):
+                            return profile_candidates[-1]
+                    except Exception:
+                        continue
+
+    return {}
+
+
+def _detect_garmin_profile_url(
+    *,
+    token_store_b64: str,
+    email: str,
+    password: str,
+) -> str:
+    profile = _fetch_garmin_profile(
+        token_store_b64=token_store_b64,
+        email=email,
+        password=password,
+    )
+    return _garmin_profile_url_from_profile(profile)
+
+
 def _prompt_use_strava_profile_link(default_enabled: bool) -> bool:
     print("\nOptional: show your Strava profile link in the dashboard header.")
     default_choice = "y" if default_enabled else "n"
     choice = _prompt_choice(
-        "Show Strava profile link next to the repo link? [y/n]: ",
+        "Show Strava profile link in dashboard? [y/n]: ",
         {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
         default=default_choice,
         invalid_message="Please enter 'y' or 'n'.",
     )
     return choice == "yes"
+
+
+def _prompt_use_strava_activity_links(default_enabled: bool) -> bool:
+    print("\nOptional: include links to Strava activities in yearly heatmap tooltips.")
+    print("Desktop tip: click a heatmap dot to pin the tooltip so links are clickable.")
+    default_choice = "y" if default_enabled else "n"
+    choice = _prompt_choice(
+        "Show Strava activity links in tooltip details? [y/n]: ",
+        {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
+        default=default_choice,
+        invalid_message="Please enter 'y' or 'n'.",
+    )
+    return choice == "yes"
+
+
+def _prompt_use_garmin_profile_link(default_enabled: bool) -> bool:
+    print("\nOptional: show your Garmin profile link in the dashboard header.")
+    default_choice = "y" if default_enabled else "n"
+    choice = _prompt_choice(
+        "Show Garmin profile link in dashboard? [y/n]: ",
+        {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
+        default=default_choice,
+        invalid_message="Please enter 'y' or 'n'.",
+    )
+    return choice == "yes"
+
+
+def _prompt_use_garmin_activity_links(default_enabled: bool) -> bool:
+    print("\nOptional: include links to Garmin activities in yearly heatmap tooltips.")
+    print("Desktop tip: click a heatmap dot to pin the tooltip so links are clickable.")
+    default_choice = "y" if default_enabled else "n"
+    choice = _prompt_choice(
+        "Show Garmin activity links in tooltip details? [y/n]: ",
+        {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
+        default=default_choice,
+        invalid_message="Please enter 'y' or 'n'.",
+    )
+    return choice == "yes"
+
+
+def _prompt_profile_url_if_missing(source: str) -> str:
+    normalized_source = str(source or "").strip().lower()
+    if normalized_source == "garmin":
+        example = "https://connect.garmin.com/modern/profile/<id>"
+        normalize = _normalize_garmin_profile_url
+        provider_name = "Garmin"
+    else:
+        example = "https://www.strava.com/athletes/<id>"
+        normalize = _normalize_strava_profile_url
+        provider_name = "Strava"
+
+    print(
+        f"{provider_name} profile URL could not be auto-detected.\n"
+        f"Optional: paste your {provider_name} profile URL (example: {example})."
+    )
+    while True:
+        response = input("Profile URL (leave blank to skip): ").strip()
+        if not response:
+            return ""
+        try:
+            return normalize(response)
+        except ValueError as exc:
+            print(str(exc))
 
 
 def _resolve_strava_profile_url(
@@ -988,9 +1330,85 @@ def _resolve_strava_profile_url(
     candidate = detected or existing_value
     if interactive:
         enabled = _prompt_use_strava_profile_link(default_enabled=bool(candidate))
-        return candidate if enabled else ""
+        if not enabled:
+            return ""
+        if candidate:
+            return candidate
+        return _prompt_profile_url_if_missing("strava")
 
     return candidate
+
+
+def _resolve_garmin_profile_url(
+    args: argparse.Namespace,
+    interactive: bool,
+    repo: str,
+    *,
+    token_store_b64: str,
+    email: str,
+    password: str,
+) -> str:
+    explicit = getattr(args, "garmin_profile_url", None)
+    if explicit is not None:
+        explicit_text = str(explicit).strip()
+        if not explicit_text:
+            return ""
+        return _normalize_garmin_profile_url(explicit_text)
+
+    detected = _normalize_garmin_profile_url(
+        _detect_garmin_profile_url(
+            token_store_b64=token_store_b64,
+            email=email,
+            password=password,
+        )
+    )
+
+    existing_raw = _get_variable("DASHBOARD_GARMIN_PROFILE_URL", repo)
+    try:
+        existing_value = _normalize_garmin_profile_url(existing_raw)
+    except ValueError:
+        existing_value = ""
+
+    candidate = detected or existing_value
+    if interactive:
+        enabled = _prompt_use_garmin_profile_link(default_enabled=bool(candidate))
+        if not enabled:
+            return ""
+        if candidate:
+            return candidate
+        return _prompt_profile_url_if_missing("garmin")
+
+    return candidate
+
+
+def _resolve_strava_activity_links(
+    args: argparse.Namespace,
+    interactive: bool,
+    repo: str,
+) -> bool:
+    explicit = getattr(args, "strava_activity_links", None)
+    if explicit is not None:
+        return _parse_bool_text(explicit, field_name="--strava-activity-links")
+
+    existing = _existing_dashboard_strava_activity_links(repo)
+    if interactive:
+        return _prompt_use_strava_activity_links(default_enabled=bool(existing))
+    return bool(existing)
+
+
+def _resolve_garmin_activity_links(
+    args: argparse.Namespace,
+    interactive: bool,
+    repo: str,
+) -> bool:
+    explicit = getattr(args, "garmin_activity_links", None)
+    if explicit is not None:
+        return _parse_bool_text(explicit, field_name="--garmin-activity-links")
+
+    existing = _existing_dashboard_garmin_activity_links(repo)
+    if interactive:
+        return _prompt_use_garmin_activity_links(default_enabled=bool(existing))
+    return bool(existing)
 
 
 def _iter_exception_chain(exc: Exception) -> Iterator[BaseException]:
@@ -1672,6 +2090,23 @@ def parse_args() -> argparse.Namespace:
         help="Optional Strava profile URL override shown in the dashboard header (auto-detected by default).",
     )
     parser.add_argument(
+        "--strava-activity-links",
+        choices=["yes", "no", "true", "false", "1", "0"],
+        default=None,
+        help="Whether to show Strava activity links in yearly heatmap tooltip details.",
+    )
+    parser.add_argument(
+        "--garmin-profile-url",
+        default=None,
+        help="Optional Garmin profile URL override shown in the dashboard header (auto-detected by default).",
+    )
+    parser.add_argument(
+        "--garmin-activity-links",
+        choices=["yes", "no", "true", "false", "1", "0"],
+        default=None,
+        help="Whether to show Garmin activity links in yearly heatmap tooltip details.",
+    )
+    parser.add_argument(
         "--custom-domain",
         default=None,
         help="Optional custom GitHub Pages domain host (for example strava.example.com).",
@@ -1745,6 +2180,9 @@ def main() -> int:
     configured_secret_names: list[str] = []
     athlete_name = ""
     strava_profile_url = ""
+    strava_activity_links_enabled = False
+    garmin_profile_url = ""
+    garmin_activity_links_enabled = False
     strava_rotation_secret_ok: Optional[bool] = None
     strava_rotation_secret_detail = ""
     if source == "strava":
@@ -1794,6 +2232,7 @@ def main() -> int:
             [str(athlete.get("firstname", "")).strip(), str(athlete.get("lastname", "")).strip()]
         ).strip()
         strava_profile_url = _resolve_strava_profile_url(args, interactive, repo, tokens=tokens)
+        strava_activity_links_enabled = _resolve_strava_activity_links(args, interactive, repo)
     elif source == "garmin":
         token_store_b64, garmin_email, garmin_password = _resolve_garmin_auth_values(args, interactive)
         if token_store_b64:
@@ -1803,6 +2242,15 @@ def main() -> int:
             _set_secret("GARMIN_EMAIL", garmin_email, repo)
             _set_secret("GARMIN_PASSWORD", garmin_password, repo)
             configured_secret_names.extend(["GARMIN_EMAIL", "GARMIN_PASSWORD"])
+        garmin_profile_url = _resolve_garmin_profile_url(
+            args,
+            interactive,
+            repo,
+            token_store_b64=token_store_b64,
+            email=garmin_email,
+            password=garmin_password,
+        )
+        garmin_activity_links_enabled = _resolve_garmin_activity_links(args, interactive, repo)
     else:
         raise RuntimeError(f"Unsupported source: {source}")
 
@@ -1842,9 +2290,22 @@ def main() -> int:
     ]
     if source == "strava":
         variable_pairs.append(("DASHBOARD_STRAVA_PROFILE_URL", strava_profile_url))
+        variable_pairs.append(
+            ("DASHBOARD_STRAVA_ACTIVITY_LINKS", "true" if strava_activity_links_enabled else "")
+        )
+    elif source == "garmin":
+        variable_pairs.append(("DASHBOARD_GARMIN_PROFILE_URL", garmin_profile_url))
+        variable_pairs.append(
+            ("DASHBOARD_GARMIN_ACTIVITY_LINKS", "true" if garmin_activity_links_enabled else "")
+        )
     for name, value in variable_pairs:
         try:
-            if name == "DASHBOARD_STRAVA_PROFILE_URL" and not value:
+            if name in {
+                "DASHBOARD_STRAVA_PROFILE_URL",
+                "DASHBOARD_STRAVA_ACTIVITY_LINKS",
+                "DASHBOARD_GARMIN_PROFILE_URL",
+                "DASHBOARD_GARMIN_ACTIVITY_LINKS",
+            } and not value:
                 _clear_variable(name, repo)
             else:
                 _set_variable(name, value, repo)
@@ -1858,6 +2319,12 @@ def main() -> int:
     )
     if source == "strava" and strava_profile_url:
         variable_summary = f"{variable_summary}, DASHBOARD_STRAVA_PROFILE_URL={strava_profile_url}"
+    if source == "strava" and strava_activity_links_enabled:
+        variable_summary = f"{variable_summary}, DASHBOARD_STRAVA_ACTIVITY_LINKS=true"
+    if source == "garmin" and garmin_profile_url:
+        variable_summary = f"{variable_summary}, DASHBOARD_GARMIN_PROFILE_URL={garmin_profile_url}"
+    if source == "garmin" and garmin_activity_links_enabled:
+        variable_summary = f"{variable_summary}, DASHBOARD_GARMIN_ACTIVITY_LINKS=true"
 
     if variable_errors:
         _add_step(

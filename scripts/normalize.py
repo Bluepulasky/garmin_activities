@@ -98,8 +98,9 @@ def _normalize_activity(activity: Dict, type_aliases: Dict[str, str], source: st
         activity.get("elevationGain"),
         activity.get("totalElevationGain"),
     )
+    activity_name = str(_coalesce(activity.get("name"), activity.get("activityName"), "") or "").strip()
 
-    return {
+    normalized = {
         "id": str(activity_id),
         "start_date_local": str(start_date_local).replace(" ", "T"),
         "date": date_str,
@@ -111,6 +112,9 @@ def _normalize_activity(activity: Dict, type_aliases: Dict[str, str], source: st
         "moving_time": _safe_float(moving_time),
         "elevation_gain": _safe_float(elevation_gain),
     }
+    if activity_name:
+        normalized["name"] = activity_name
+    return normalized
 
 
 def _load_existing() -> Dict[str, Dict]:
