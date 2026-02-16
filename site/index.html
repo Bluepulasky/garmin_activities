@@ -171,14 +171,6 @@
         text-align: center;
       }
 
-      .updated {
-        color: var(--muted);
-        font-size: 12px;
-        margin: 0;
-        white-space: nowrap;
-        text-align: left;
-      }
-
       .controls {
         display: none;
         min-width: 0;
@@ -1505,7 +1497,7 @@
         }
         .header-top {
           grid-template-columns: minmax(0, 1fr) var(--mobile-action-width);
-          grid-template-rows: auto auto auto auto auto auto;
+          grid-template-rows: auto auto auto auto auto;
           justify-items: stretch;
           justify-content: center;
           row-gap: var(--mobile-header-row-gap);
@@ -1603,7 +1595,7 @@
           display: inline-flex;
           position: absolute;
           right: var(--mobile-header-padding-inline);
-          bottom: var(--mobile-header-padding-block);
+          bottom: calc(var(--mobile-header-padding-block) + 2px);
           width: auto;
           border-radius: 999px;
           border: 1px solid rgba(148, 163, 184, 0.55);
@@ -1637,14 +1629,7 @@
           white-space: nowrap;
         }
         .header-meta {
-          grid-column: 1 / -1;
-          grid-row: 6;
-          text-align: center;
-          align-items: center;
-          justify-self: center;
-        }
-        .updated {
-          text-align: center;
+          display: none;
         }
         .header-links {
           grid-column: 1 / -1;
@@ -1763,9 +1748,7 @@
     <div class="app">
       <header>
         <div class="header-top">
-          <div class="header-meta" id="headerMeta">
-            <div id="updated" class="updated"></div>
-          </div>
+          <div class="header-meta" id="headerMeta"></div>
           <h1 id="dashboardTitle">Activity Heatmaps</h1>
           <div class="button-row" id="typeButtons"></div>
           <div class="button-row" id="yearButtons"></div>

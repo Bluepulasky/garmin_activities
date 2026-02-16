@@ -46,7 +46,6 @@ const yearMenuOptions = document.getElementById("yearMenuOptions");
 const heatmaps = document.getElementById("heatmaps");
 const tooltip = document.getElementById("tooltip");
 const summary = document.getElementById("summary");
-const updated = document.getElementById("updated");
 const headerMeta = document.getElementById("headerMeta");
 const headerLinks = document.querySelector(".header-links");
 const repoLink = document.querySelector(".repo-link");
@@ -325,22 +324,23 @@ function syncFooterHostedLink(fallbackRepo) {
   }
 }
 
-function syncDesktopHeaderLinkPlacement() {
-  if (!repoLink || !headerMeta || !headerLinks) return;
-  const shouldStackRepoOnLeft = Boolean(
-    isDesktopLikeViewport() && stravaProfileLink && !stravaProfileLink.hidden,
-  );
+function syncHeaderLinkPlacement() {
+  if (!repoLink || !headerLinks) return;
+  if (repoLink.parentElement !== headerLinks) {
+    headerLinks.insertBefore(repoLink, headerLinks.firstChild);
+  }
 
-  if (shouldStackRepoOnLeft) {
-    if (repoLink.parentElement !== headerMeta) {
-      const insertBeforeNode = updated && updated.parentElement === headerMeta ? updated : null;
-      headerMeta.insertBefore(repoLink, insertBeforeNode);
+  if (!stravaProfileLink || !headerMeta) return;
+  const placeStravaOnLeft = isDesktopLikeViewport() && !stravaProfileLink.hidden;
+  if (placeStravaOnLeft) {
+    if (stravaProfileLink.parentElement !== headerMeta) {
+      headerMeta.appendChild(stravaProfileLink);
     }
     return;
   }
 
-  if (repoLink.parentElement !== headerLinks) {
-    headerLinks.insertBefore(repoLink, headerLinks.firstChild);
+  if (stravaProfileLink.parentElement !== headerLinks) {
+    headerLinks.appendChild(stravaProfileLink);
   }
 }
 
@@ -379,7 +379,7 @@ function syncStravaProfileLink(profileUrl) {
   const parsed = parseStravaProfileUrl(profileUrl);
   if (!parsed) {
     stravaProfileLink.hidden = true;
-    syncDesktopHeaderLinkPlacement();
+    syncHeaderLinkPlacement();
     return;
   }
   stravaProfileLink.href = parsed.href;
@@ -389,7 +389,7 @@ function syncStravaProfileLink(profileUrl) {
     stravaProfileLink.textContent = parsed.label;
   }
   stravaProfileLink.hidden = false;
-  syncDesktopHeaderLinkPlacement();
+  syncHeaderLinkPlacement();
 }
 
 function providerDisplayName(source) {
@@ -2565,10 +2565,6 @@ function renderLoadError(error) {
   const detail = error && typeof error.message === "string" && error.message
     ? error.message
     : "Unexpected error.";
-
-  if (updated) {
-    updated.textContent = "Last updated: unavailable";
-  }
   if (summary) {
     summary.innerHTML = "";
   }
@@ -2597,7 +2593,7 @@ async function init() {
   syncRepoLink();
   syncFooterHostedLink();
   syncStravaProfileLink();
-  syncDesktopHeaderLinkPlacement();
+  syncHeaderLinkPlacement();
   const resp = await fetch("data.json");
   if (!resp.ok) {
     throw new Error(`Failed to load data.json (${resp.status})`);
@@ -2631,19 +2627,6 @@ async function init() {
       TYPE_META[type] = { label: prettifyType(type), accent: fallbackColor(type) };
     }
   });
-
-  if (payload.generated_at) {
-    const updatedAt = new Date(payload.generated_at);
-    if (!Number.isNaN(updatedAt.getTime())) {
-      updated.textContent = `Last updated: ${updatedAt.toLocaleString([], {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })}`;
-    }
-  }
 
   const typeOptions = [
     { value: "all", label: "All Activities" },
@@ -3695,7 +3678,7 @@ async function init() {
       }
       lastViewportWidth = width;
       lastIsNarrowLayout = isNarrowLayout;
-      syncDesktopHeaderLinkPlacement();
+      syncHeaderLinkPlacement();
       resetPersistentSideStatSizing();
       update();
     }, 150);
