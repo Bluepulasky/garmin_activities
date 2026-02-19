@@ -81,6 +81,9 @@ let touchTooltipRecentPointerUpCell = null;
 let touchTooltipRecentPointerUpUntil = 0;
 let touchTooltipRecentPointerUpWasTap = true;
 let touchTooltipPointerDownState = null;
+let tooltipPositionFrame = null;
+let tooltipSettleFrame = null;
+let pendingTooltipPoint = null;
 const PROFILE_PROVIDER_STRAVA = "strava";
 const PROFILE_PROVIDER_GARMIN = "garmin";
 const TOUCH_TOOLTIP_TAP_MAX_MOVE_PX = 10;
@@ -1320,7 +1323,7 @@ function clamp(value, min, max) {
 }
 
 function getViewportMetrics() {
-  const viewport = window.visualViewport;
+  const viewport = useTouchInteractions ? window.visualViewport : null;
   if (!viewport) {
     return {
       offsetLeft: 0,
@@ -1379,25 +1382,29 @@ function getTouchTooltipScale() {
 function positionTooltip(x, y) {
   const padding = 12;
   const rect = tooltip.getBoundingClientRect();
+  const rectWidth = Number.isFinite(rect.width) && rect.width > 0
+    ? rect.width
+    : Math.max(0, Number(tooltip.offsetWidth || 0));
+  const rectHeight = Number.isFinite(rect.height) && rect.height > 0
+    ? rect.height
+    : Math.max(0, Number(tooltip.offsetHeight || 0));
   const viewport = getViewportMetrics();
   const anchorOffset = tooltipViewportAnchorOffset(viewport);
   const anchorX = x + anchorOffset.x;
   const anchorY = y + anchorOffset.y;
-  if (!useTouchInteractions) {
-    tooltip.style.left = `${anchorX + 12}px`;
-    tooltip.style.top = `${anchorY + 12}px`;
-    tooltip.style.bottom = "auto";
-    return;
-  }
   const minX = anchorOffset.x + padding;
   const minY = anchorOffset.y + padding;
-  const maxX = Math.max(minX, anchorOffset.x + viewport.width - rect.width - padding);
-  const maxY = Math.max(minY, anchorOffset.y + viewport.height - rect.height - padding);
-  const preferredLeft = anchorX + 12;
-  const alternateLeft = anchorX - rect.width - 12;
+  const maxX = Math.max(minX, anchorOffset.x + viewport.width - rectWidth - padding);
+  const maxY = Math.max(minY, anchorOffset.y + viewport.height - rectHeight - padding);
+  const preferredLeft = anchorX + padding;
+  const alternateLeft = anchorX - rectWidth - padding;
   const left = pickTooltipCoordinate(preferredLeft, alternateLeft, minX, maxX);
-  const preferredTop = useTouchInteractions ? (anchorY - rect.height - 12) : (anchorY + 12);
-  const alternateTop = useTouchInteractions ? (anchorY + 12) : (anchorY - rect.height - 12);
+  const preferredTop = useTouchInteractions
+    ? (anchorY - rectHeight - padding)
+    : (anchorY + padding);
+  const alternateTop = useTouchInteractions
+    ? (anchorY + padding)
+    : (anchorY - rectHeight - padding);
   const top = pickTooltipCoordinate(preferredTop, alternateTop, minY, maxY);
   tooltip.style.left = `${left}px`;
   tooltip.style.top = `${top}px`;
@@ -1615,15 +1622,37 @@ function showTooltip(content, x, y, options = {}) {
   if (useTouchInteractions) {
     updateTouchTooltipWrapMode();
   }
-  requestAnimationFrame(() => {
-    positionTooltip(x, y);
-    if (useTouchInteractions) {
-      requestAnimationFrame(() => positionTooltip(x, y));
-    }
+  pendingTooltipPoint = { x, y };
+  if (tooltipPositionFrame !== null) {
+    window.cancelAnimationFrame(tooltipPositionFrame);
+    tooltipPositionFrame = null;
+  }
+  if (tooltipSettleFrame !== null) {
+    window.cancelAnimationFrame(tooltipSettleFrame);
+    tooltipSettleFrame = null;
+  }
+  tooltipPositionFrame = window.requestAnimationFrame(() => {
+    tooltipPositionFrame = null;
+    if (!pendingTooltipPoint) return;
+    positionTooltip(pendingTooltipPoint.x, pendingTooltipPoint.y);
+    tooltipSettleFrame = window.requestAnimationFrame(() => {
+      tooltipSettleFrame = null;
+      if (!pendingTooltipPoint) return;
+      positionTooltip(pendingTooltipPoint.x, pendingTooltipPoint.y);
+    });
   });
 }
 
 function hideTooltip() {
+  if (tooltipPositionFrame !== null) {
+    window.cancelAnimationFrame(tooltipPositionFrame);
+    tooltipPositionFrame = null;
+  }
+  if (tooltipSettleFrame !== null) {
+    window.cancelAnimationFrame(tooltipSettleFrame);
+    tooltipSettleFrame = null;
+  }
+  pendingTooltipPoint = null;
   tooltip.classList.remove("visible");
   tooltip.classList.remove("nowrap");
   tooltip.classList.remove("interactive");
