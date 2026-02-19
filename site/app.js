@@ -2867,7 +2867,7 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
       : "";
     const lines = [createTooltipTextLine(dateStr)];
     if (singleTypeLabel) {
-      lines.push(createTooltipLinkedTypeLine("1 ", singleTypeLabel, " Activity", singleActivityLink));
+      lines.push(createTooltipLinkedTypeLine("1 ", singleTypeLabel, "", singleActivityLink));
     } else {
       lines.push(createTooltipTextLine(formatActivityCountLabel(entry.count, type === "all" ? [] : [type])));
     }
@@ -2902,7 +2902,9 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
       lines.push(createTooltipTextLine(`Elevation: ${elevation}`));
     }
 
-    lines.push(createTooltipTextLine(`Duration: ${duration}`));
+    if (filled) {
+      lines.push(createTooltipTextLine(`Duration: ${duration}`));
+    }
     const tooltipContent = { lines };
     const canPinTooltip = Boolean(flattenTooltipActivityLinks(activityLinksByType).length);
     if (!useTouchInteractions) {
