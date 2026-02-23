@@ -4985,6 +4985,15 @@
       "type": "Ride",
       "url": "https://connect.garmin.com/modern/activity/21937091058",
       "year": 2026
+    },
+    {
+      "date": "2026-02-22",
+      "hour": 18,
+      "name": "Puertomingalvo Senderismo",
+      "subtype": "hiking",
+      "type": "Hike",
+      "url": "https://connect.garmin.com/modern/activity/21952064872",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -8780,6 +8789,17 @@
       }
     },
     "2026": {
+      "Hike": {
+        "2026-02-22": {
+          "activity_ids": [
+            "21952064872"
+          ],
+          "count": 1,
+          "distance": 2394.929931640625,
+          "elevation_gain": 24.0,
+          "moving_time": 2041.0
+        }
+      },
       "Ride": {
         "2026-01-02": {
           "activity_ids": [
@@ -9000,7 +9020,7 @@
     }
   },
   "garmin_profile_url": "https://connect.garmin.com/modern/profile/9c223986-526d-439a-a656-ea08acca719b",
-  "generated_at": "2026-02-22T15:27:54.656271+00:00",
+  "generated_at": "2026-02-23T16:20:11.213445+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://connect.garmin.com/modern/profile/9c223986-526d-439a-a656-ea08acca719b",
   "repo": "Bluepulasky/garmin_activities",

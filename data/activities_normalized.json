@@ -7200,5 +7200,18 @@
     "start_date_local": "2026-02-21T08:49:42",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-02-22",
+    "distance": 2394.929931640625,
+    "elevation_gain": 24.0,
+    "id": "21952064872",
+    "moving_time": 2041.0,
+    "name": "Puertomingalvo Senderismo",
+    "raw_activity_type": "hiking",
+    "raw_type": "hiking",
+    "start_date_local": "2026-02-22T18:24:42",
+    "type": "Hike",
+    "year": 2026
   }
 ]
