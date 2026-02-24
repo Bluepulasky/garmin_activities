@@ -7213,5 +7213,18 @@
     "start_date_local": "2026-02-22T18:24:42",
     "type": "Hike",
     "year": 2026
+  },
+  {
+    "date": "2026-02-24",
+    "distance": 25868.560546875,
+    "elevation_gain": 104.0,
+    "id": "21970520903",
+    "moving_time": 3630.0,
+    "name": "Picassent Ciclismo en ruta",
+    "raw_activity_type": "road_biking",
+    "raw_type": "road_biking",
+    "start_date_local": "2026-02-24T15:26:05",
+    "type": "Ride",
+    "year": 2026
   }
 ]
