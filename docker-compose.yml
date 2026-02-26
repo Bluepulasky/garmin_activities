@@ -1,8 +1,10 @@
+name: garmin-activities
+
 services:
   app:
     build: .
     ports:
-      - "69:69"
+      - "1069:69"
     volumes:
       - ./site:/app/site:ro
       - ./data:/app/data:ro

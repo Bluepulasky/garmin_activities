@@ -21,7 +21,7 @@ sync:
   # start_date: "2019-01-01" # YYYY-MM-DD lower bound
   # lookback_years: 5        # ignored when start_date is set
   recent_days: 7
-  resume_backfill: true
+  resume_backfill: false
   per_page: 200
   prune_deleted: true
 

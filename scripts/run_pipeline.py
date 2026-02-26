@@ -290,10 +290,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    config = load_config()
-    prune_deleted = args.prune_deleted or bool(
-        config.get("sync", {}).get("prune_deleted", False)
-    )
+    prune_deleted = True  # Siempre hacemos prune automático
 
     run_pipeline(
         skip_sync=args.skip_sync,

@@ -3891,6 +3891,13 @@
       "subtype": "road_biking",
       "type": "Ride",
       "year": 2026
+    },
+    {
+      "date": "2026-02-25",
+      "hour": 17,
+      "subtype": "paddelball",
+      "type": "paddelball",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -7921,11 +7928,20 @@
           "distance": 306.489990234375,
           "elevation_gain": 0.0,
           "moving_time": 311.0
+        },
+        "2026-02-25": {
+          "activity_ids": [
+            "21983458245"
+          ],
+          "count": 1,
+          "distance": 269.92999267578125,
+          "elevation_gain": 0.0,
+          "moving_time": 316.0
         }
       }
     }
   },
-  "generated_at": "2026-02-24T19:51:06.947024+00:00",
+  "generated_at": "2026-02-26T21:29:04.739057+00:00",
   "other_bucket": "OtherSports",
   "repo": "Bluepulasky/garmin_activities",
   "source": "garmin",

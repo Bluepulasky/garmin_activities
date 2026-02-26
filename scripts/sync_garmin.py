@@ -673,6 +673,8 @@ def sync_garmin(dry_run: bool, prune_deleted: bool) -> Dict[str, Any]:
                 exhausted = True
                 break
 
+    # can_prune_deleted = prune_deleted and not dry_run
+    
     can_prune_deleted = (
         prune_deleted
         and not dry_run
