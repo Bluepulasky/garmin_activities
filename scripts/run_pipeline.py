@@ -290,10 +290,15 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    config = load_config()
+    prune_deleted = args.prune_deleted or bool(
+        config.get("sync", {}).get("prune_deleted", False)
+    )
+
     run_pipeline(
         skip_sync=args.skip_sync,
         dry_run=args.dry_run,
-        prune_deleted=args.prune_deleted,
+        prune_deleted=prune_deleted,
         update_readme_link=args.update_readme_link,
     )
     return 0

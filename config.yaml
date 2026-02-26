@@ -23,7 +23,7 @@ sync:
   recent_days: 7
   resume_backfill: true
   per_page: 200
-  prune_deleted: false
+  prune_deleted: true
 
 rate_limits:
   overall_15_min: 200
