@@ -76,6 +76,7 @@ def _normalize_activity(activity: Dict, type_aliases: Dict[str, str], source: st
     canonical_raw_type = _resolve_canonical_type(raw_type, source)
     activity_type = type_aliases.get(raw_type, type_aliases.get(canonical_raw_type, canonical_raw_type))
     distance = _coalesce(activity.get("distance"), activity.get("totalDistance"))
+    # trainingload = _coalesce(activity.get("trainingLoad"), activity.get("training_load"))
     moving_time = _pick_duration_seconds(*_duration_candidates(activity))
     elevation_gain = _coalesce(
         activity.get("total_elevation_gain"),
@@ -95,6 +96,7 @@ def _normalize_activity(activity: Dict, type_aliases: Dict[str, str], source: st
         "distance": _safe_float(distance),
         "moving_time": _safe_float(moving_time),
         "elevation_gain": _safe_float(elevation_gain),
+        # "training_load": _safe_float(trainingload),
     }
     if activity_name:
         normalized["name"] = activity_name
