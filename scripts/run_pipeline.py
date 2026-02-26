@@ -5,6 +5,9 @@ import re
 import subprocess
 import urllib.request
 from typing import Optional
+from datetime import datetime
+
+now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 from aggregate import aggregate as aggregate_func
 from normalize import normalize as normalize_func
@@ -263,7 +266,7 @@ def run_pipeline(
 
     if not skip_sync:
         summary = _sync_for_source(source, dry_run=dry_run, prune_deleted=prune_deleted)
-        print(f"Synced ({source}): {summary}")
+        print(f"[{now}] Synced ({source}): {summary}")
 
     items = normalize_func()
     _write_normalized(items)

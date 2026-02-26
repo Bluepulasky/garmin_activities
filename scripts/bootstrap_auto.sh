@@ -95,8 +95,10 @@ run_setup() {
   [[ -f "$repo_root/$SETUP_SCRIPT_REL" ]] || fail "Missing setup script: $repo_root/$SETUP_SCRIPT_REL"
   require_cmd python3
 
+  now=$(date '+%Y-%m-%d %H:%M:%S')
+  
   info ""
-  info "Launching setup script..."
+  info "[$now] Launching setup script..."
   (cd "$repo_root" && python3 "$SETUP_SCRIPT_REL" "$@")
 }
 

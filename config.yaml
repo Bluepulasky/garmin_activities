@@ -21,7 +21,7 @@ sync:
   # start_date: "2019-01-01" # YYYY-MM-DD lower bound
   # lookback_years: 5        # ignored when start_date is set
   recent_days: 7
-  resume_backfill: false
+  resume_backfill: true # when true, backfill syncs will resume from the last synced activity instead of starting over (preffered with cron in auto). put FALSE to erase all erased activities
   per_page: 200
   prune_deleted: true
 
