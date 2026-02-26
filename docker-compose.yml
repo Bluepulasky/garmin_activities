@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "69:69"
+    volumes:
+      - ./site:/app/site:ro
+      - ./data:/app/data:ro
+      - ./config.yaml:/app/config.yaml:ro
