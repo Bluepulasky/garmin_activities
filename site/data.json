@@ -5003,6 +5003,15 @@
       "type": "Ride",
       "url": "https://connect.garmin.com/modern/activity/21970520903",
       "year": 2026
+    },
+    {
+      "date": "2026-02-25",
+      "hour": 17,
+      "name": "P\u00e1del",
+      "subtype": "paddelball",
+      "type": "paddelball",
+      "url": "https://connect.garmin.com/modern/activity/21983458245",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -9033,12 +9042,21 @@
           "distance": 306.489990234375,
           "elevation_gain": 0.0,
           "moving_time": 311.0
+        },
+        "2026-02-25": {
+          "activity_ids": [
+            "21983458245"
+          ],
+          "count": 1,
+          "distance": 269.92999267578125,
+          "elevation_gain": 0.0,
+          "moving_time": 316.0
         }
       }
     }
   },
   "garmin_profile_url": "https://connect.garmin.com/modern/profile/9c223986-526d-439a-a656-ea08acca719b",
-  "generated_at": "2026-02-25T16:06:10.901487+00:00",
+  "generated_at": "2026-02-26T15:55:25.549644+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://connect.garmin.com/modern/profile/9c223986-526d-439a-a656-ea08acca719b",
   "repo": "Bluepulasky/garmin_activities",
