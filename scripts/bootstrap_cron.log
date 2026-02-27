@@ -1,0 +1,20 @@
+
+[2026-02-27 00:05:01] Launching setup script...
+Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (26.0.1)
+Requirement already satisfied: requests==2.32.3 in ./.venv/lib/python3.12/site-packages (from -r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 1)) (2.32.3)
+Requirement already satisfied: PyYAML==6.0.2 in ./.venv/lib/python3.12/site-packages (from -r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 2)) (6.0.2)
+Requirement already satisfied: garminconnect>=0.2.25 in ./.venv/lib/python3.12/site-packages (from -r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (0.2.38)
+Requirement already satisfied: charset-normalizer<4,>=2 in ./.venv/lib/python3.12/site-packages (from requests==2.32.3->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 1)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./.venv/lib/python3.12/site-packages (from requests==2.32.3->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 1)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./.venv/lib/python3.12/site-packages (from requests==2.32.3->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 1)) (2.6.3)
+Requirement already satisfied: certifi>=2017.4.17 in ./.venv/lib/python3.12/site-packages (from requests==2.32.3->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 1)) (2026.1.4)
+Requirement already satisfied: garth<0.6.0,>=0.5.17 in ./.venv/lib/python3.12/site-packages (from garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (0.5.21)
+Requirement already satisfied: pydantic<3.0.0,>=1.10.12 in ./.venv/lib/python3.12/site-packages (from garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (2.12.5)
+Requirement already satisfied: requests-oauthlib<3.0.0,>=1.3.1 in ./.venv/lib/python3.12/site-packages (from garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (2.0.0)
+Requirement already satisfied: annotated-types>=0.6.0 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=1.10.12->garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.5 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=1.10.12->garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (2.41.5)
+Requirement already satisfied: typing-extensions>=4.14.1 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=1.10.12->garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (4.15.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=1.10.12->garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (0.4.2)
+Requirement already satisfied: oauthlib>=3.0.0 in ./.venv/lib/python3.12/site-packages (from requests-oauthlib<3.0.0,>=1.3.1->garth<0.6.0,>=0.5.17->garminconnect>=0.2.25->-r /home/tom/samba/vscode_projects/garmin_activities/requirements.txt (line 3)) (3.3.1)
+Skipping prune_deleted for Garmin: pruning requires a full backfill scan in this run.
+[2026-02-27 00:05:02] Synced (garmin): {'source': 'garmin', 'fetched': 4, 'new_or_updated': 0, 'deleted': 0, 'lookback_start_ts': 0, 'timestamp_utc': '2026-02-27T00:05:05.012248+00:00', 'rate_limited': False, 'backfill_completed': True, 'backfill_next_offset': None, 'duration_enriched': 0, 'recent_sync': {'fetched': 4, 'new_or_updated': 0, 'oldest_ts': 1771660182, 'newest_ts': 1772035299, 'rate_limited': False, 'rate_limit_message': '', 'activity_ids': ['21937091058', '21952064872', '21970520903', '21983458245']}}
