@@ -7239,5 +7239,31 @@
     "start_date_local": "2026-02-25T17:01:39",
     "type": "paddelball",
     "year": 2026
+  },
+  {
+    "date": "2026-02-28",
+    "distance": 47405.69140625,
+    "elevation_gain": 509.0,
+    "id": "22011878243",
+    "moving_time": 7635.0,
+    "name": "Picassent Ciclismo en ruta",
+    "raw_activity_type": "road_biking",
+    "raw_type": "road_biking",
+    "start_date_local": "2026-02-28T09:27:38",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-03-01",
+    "distance": 35056.48046875,
+    "elevation_gain": 202.0,
+    "id": "22022378809",
+    "moving_time": 5374.0,
+    "name": "Picassent Ciclismo en ruta",
+    "raw_activity_type": "road_biking",
+    "raw_type": "road_biking",
+    "start_date_local": "2026-03-01T09:44:37",
+    "type": "Ride",
+    "year": 2026
   }
 ]
