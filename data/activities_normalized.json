@@ -7265,5 +7265,18 @@
     "start_date_local": "2026-03-01T09:44:37",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-03-04",
+    "distance": 377.4100036621094,
+    "elevation_gain": 0.0,
+    "id": "22060870064",
+    "moving_time": 393.0,
+    "name": "P\u00e1del",
+    "raw_activity_type": "paddelball",
+    "raw_type": "paddelball",
+    "start_date_local": "2026-03-04T17:03:14",
+    "type": "paddelball",
+    "year": 2026
   }
 ]

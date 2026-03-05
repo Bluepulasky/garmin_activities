@@ -103,7 +103,7 @@ run_setup() {
 }
 
 main() {
-  local repo_dir="/home/tom/samba/vscode_projects/garmin_activities"
+  local repo_dir="/mnt/tank-hdd/config/garmin_activities"
 
   require_cmd python3
 
