@@ -362,8 +362,8 @@ def _bootstrap_env_and_reexec(args: argparse.Namespace) -> None:
 
     _ensure_venv_pip(venv_python)
     # print("Installing Python dependencies into .venv...")
-    _run_stream([venv_python, "-m", "pip", "install", "--upgrade", "pip"], cwd=root)
-    _run_stream([venv_python, "-m", "pip", "install", "-r", requirements], cwd=root)
+    _run_stream([venv_python, "-m", "pip", "install", "--upgrade", "pip", "--quiet"], cwd=root)
+    _run_stream([venv_python, "-m", "pip", "install", "-r", requirements, "--quiet"], cwd=root)
 
     script_path = os.path.abspath(__file__)
     child_args = [arg for arg in sys.argv[1:] if arg != "--env-bootstrapped"]
